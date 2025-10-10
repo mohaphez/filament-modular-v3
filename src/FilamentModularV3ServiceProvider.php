@@ -7,7 +7,6 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
-use Nwidart\Modules\Laravel\Module;
 use RealMrHex\FilamentModularV3\Commands\{
     MakeModularPageCommand,
     MakeModularRelationManagerCommand,
@@ -61,7 +60,7 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
         }
     }
 
-    private function discoverPanels(Module $module): void
+    private function discoverPanels($module): void
     {
         $providersDir = "{$module->getPath()}/Providers/Filament/Panels";
 
@@ -284,7 +283,7 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
         return array_merge($commands, $aliases);
     }
 
-    protected function registerModuleConfigs(Module $module): void
+    protected function registerModuleConfigs($module): void
     {
         $configPath = "{$module->getPath()}/Config";
 
@@ -298,7 +297,7 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
         }
     }
 
-    public function registerTranslations(Module $module): void
+    public function registerTranslations($module): void
     {
 
         $translationPath = "{$module->getPath()}/Lang";
