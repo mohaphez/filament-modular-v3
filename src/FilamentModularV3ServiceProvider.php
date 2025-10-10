@@ -47,7 +47,17 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
         $modules = $this->app['modules']->allEnabled();
 
         foreach ($modules as $module) {
+            // Discover panels
             $this->discoverPanels($module);
+
+            // Register module configurations
+            if (!file_exists(base_path('bootstrap/cache/config.php'))) {
+                $this->registerModuleConfigs($module);
+            }
+
+            // Register module translations
+            $this->registerTranslations($module);
+
         }
     }
 
@@ -59,16 +69,15 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
             return;
         }
 
-        $providers = scandir($providersDir);
+        foreach (glob($providersDir . '/*.php') as $providerFile) {
+            $provider = basename($providerFile, '.php');
+            $providerClass = "Modules\\{$module->getStudlyName()}\\Providers\\Filament\\Panels\\{$provider}";
 
-        foreach ($providers as $provider) {
-            if (preg_match('/^(.+)\.php$/', $provider, $matches)) {
-                $providerClass = "Modules\\{$module->getStudlyName()}\\Providers\\Filament\\Panels\\{$matches[1]}";
-                if (class_exists($providerClass)) {
-                    $this->app->register($providerClass);
-                }
+            if (class_exists($providerClass)) {
+                $this->app->register($providerClass);
             }
         }
+
     }
 
     private function registerModuleDiscoveryMacros(): void
@@ -110,7 +119,7 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
 
                 foreach ($modules as $module) {
                     $baseNamespace = "Modules\\{$module->getStudlyName()}\\Filament\\{$panelId}";
-                    $resourcesDir = "{$module->getPath()}/Filament/{$panelId}/Resources";
+                    $resourcesDir = "{$module->getPath()}/app/Filament/{$panelId}/Resources";
 
                     $resourcesList = array_merge($resourcesList, $discoverResourcesFromDirectory($resourcesDir, $baseNamespace . '\\Resources'));
                 }
@@ -231,8 +240,8 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
                 return $widgetsList;
             };
 
-            $widgetsList = $cacheEnabled 
-                ? Cache::rememberForever($cacheKey, $getWidgetList) 
+            $widgetsList = $cacheEnabled
+                ? Cache::rememberForever($cacheKey, $getWidgetList)
                 : $getWidgetList();
 
             $this->widgets = array_merge($this->widgets, $widgetsList);
@@ -274,4 +283,34 @@ class FilamentModularV3ServiceProvider extends PackageServiceProvider
 
         return array_merge($commands, $aliases);
     }
+
+    protected function registerModuleConfigs(Module $module): void
+    {
+        $configPath = "{$module->getPath()}/Config";
+
+        if (!is_dir($configPath)) {
+            return;
+        }
+
+        foreach (glob($configPath . '/*.php') as $configFile) {
+            $filename = pathinfo($configFile, PATHINFO_FILENAME);
+            config()->set($filename, array_merge(config()->get($filename, []), require $configFile));
+        }
+    }
+
+    public function registerTranslations(Module $module): void
+    {
+
+        $translationPath = "{$module->getPath()}/Lang";
+
+        if (!is_dir($translationPath)) {
+            return;
+        }
+
+        $this->loadJsonTranslationsFrom($translationPath);
+        $this->loadTranslationsFrom($translationPath, $module->getLowerName());
+
+    }
+
+
 }
